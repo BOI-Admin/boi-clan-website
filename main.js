@@ -51,10 +51,14 @@ function normalizeList(value) {
 function initializeFirebase() {
   try {
     if (!window.firebase) throw new Error("Firebase SDK not loaded");
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
+
+    if (firebase.apps.length) {
+      firebase.apps.forEach(app => app.delete());
     }
+
+    firebase.initializeApp(firebaseConfig);
     db = firebase.database();
+    useFallbackStorage = false;
   } catch (error) {
     console.error("Firebase initialization failed:", error);
     useFallbackStorage = true;
