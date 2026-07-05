@@ -2,13 +2,67 @@ const firebaseConfig = {
   apiKey: "AIzaSyCMWaZu3ryQW9YwqppwKlVMCQcuRplnInM",
   authDomain: "bois-2dd9f.firebaseapp.com",
   projectId: "bois-2dd9f",
+  databaseURL: "https://bois-2dd9f-default-rtdb.europe-west1.firebasedatabase.app",
   storageBucket: "bois-2dd9f.firebasestorage.app",
   messagingSenderId: "20201490773",
   appId: "1:20201490773:web:61514536c3846380cb87dc"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const STORAGE_KEYS = {
+  members: "boiClanMembers",
+  beats: "boiClanBeats",
+  chat: "boiClanChat"
+};
+
+let db = null;
+let useFallbackStorage = false;
+
+function showStatusNotice(message, isError = false) {
+  const notice = document.getElementById("statusNotice");
+  if (!notice) return;
+  notice.textContent = message;
+  notice.className = "status-note" + (isError ? " error" : " visible");
+}
+
+function saveLocalData(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn("Could not save local data:", error);
+  }
+}
+
+function loadLocalData(key, fallbackValue) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallbackValue;
+  } catch (error) {
+    console.warn("Could not load local data:", error);
+    return fallbackValue;
+  }
+}
+
+function normalizeList(value) {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== "object") return [];
+  return Object.entries(value).map(([id, item]) => ({ id, ...(item || {}) }));
+}
+
+function initializeFirebase() {
+  try {
+    if (!window.firebase) throw new Error("Firebase SDK not loaded");
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.database();
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+    useFallbackStorage = true;
+    showStatusNotice("Using offline storage for members and chat while the database is unavailable.", true);
+  }
+}
+
+initializeFirebase();
 
 
 // =========================
@@ -38,16 +92,43 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 // =========================
 // 👥 JOIN SYSTEM (MEMBERS)
 // =========================
+function renderMembers(members) {
+  let box = document.getElementById("membersContainer");
+  if (!box) return;
+
+  let memberCount = 0;
+  box.innerHTML = "";
+
+  members.forEach(member => {
+    memberCount++;
+    let el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = "<h3>" + (member.name || "Guest") + "</h3><p>" + (member.role || "Member") + "</p>";
+    box.appendChild(el);
+  });
+
+  let countEl = document.getElementById("memberCount");
+  if (countEl) countEl.innerText = memberCount;
+}
+
 function joinClan() {
   let name = document.getElementById("username").value;
   let role = document.getElementById("role").value;
 
   if (!name) return;
 
-  db.ref("members").push({
-    name: name,
-    role: role
-  });
+  if (useFallbackStorage || !db) {
+    const members = loadLocalData(STORAGE_KEYS.members, []);
+    members.push({ name: name, role: role, id: Date.now().toString() });
+    saveLocalData(STORAGE_KEYS.members, members);
+    renderMembers(members);
+    showStatusNotice("Saved to local members list.");
+  } else {
+    db.ref("members").push({
+      name: name,
+      role: role
+    });
+  }
 
   document.getElementById("result").innerText =
     "Welcome " + name + " (" + role + ")";
@@ -55,120 +136,179 @@ function joinClan() {
   document.getElementById("username").value = "";
 }
 
-
 // LIVE MEMBERS LOAD
-db.ref("members").on("value", (snap) => {
-  let box = document.getElementById("membersContainer");
-  if (!box) return;
-  
-  let memberCount = 0;
-  box.innerHTML = "";
+function loadMembers() {
+  if (useFallbackStorage || !db) {
+    renderMembers(loadLocalData(STORAGE_KEYS.members, []));
+    return;
+  }
 
-  snap.forEach(child => {
-    memberCount++;
-    let d = child.val();
-
-    let el = document.createElement("div");
-    el.className = "card";
-    el.innerHTML = "<h3>" + d.name + "</h3><p>" + d.role + "</p>";
-
-    box.appendChild(el);
+  db.ref("members").on("value", (snap) => {
+    const members = normalizeList(snap.val());
+    renderMembers(members);
+    saveLocalData(STORAGE_KEYS.members, members);
+  }, (error) => {
+    console.error("Members database error:", error);
+    useFallbackStorage = true;
+    showStatusNotice("Members list is using local storage because the database is unavailable.", true);
+    renderMembers(loadLocalData(STORAGE_KEYS.members, []));
   });
+}
 
-  let countEl = document.getElementById("memberCount");
-  if (countEl) countEl.innerText = memberCount;
-});
+loadMembers();
 
 
 // =========================
 // 🎵 BEATS SYSTEM
 // =========================
-// Load initial beats data
-db.ref("beats").once("value", (snap) => {
-  if (!snap.exists()) {
-    const initialBeats = [
-      { title: "Midnight Vibes", artist: "Producer K", plays: 3420 },
-      { title: "Electric Dreams", artist: "Beat Master J", plays: 2890 },
-      { title: "Cosmic Flow", artist: "DJ Luna", plays: 2445 },
-      { title: "Street Anthem", artist: "Rapper X", plays: 1980 }
-    ];
-
-    initialBeats.forEach(beat => {
-      db.ref("beats").push(beat);
-    });
-  }
-});
-
-// LIVE BEATS LOAD
-db.ref("beats").on("value", (snap) => {
+function renderBeats(beats) {
   let box = document.getElementById("beatsContainer");
   if (!box) return;
-  
+
   box.innerHTML = "";
 
-  snap.forEach(child => {
-    let d = child.val();
+  beats.forEach(beat => {
+    let beatEl = document.createElement("div");
+    beatEl.className = "beat-card";
+    beatEl.innerHTML =
+      "<h4>" + (beat.title || "Untitled") + "</h4>" +
+      "<p class='artist'>by " + (beat.artist || "Unknown") + "</p>" +
+      "<p class='plays'>🔥 " + (beat.plays || 0) + " plays</p>";
 
-    let beat = document.createElement("div");
-    beat.className = "beat-card";
-    beat.innerHTML = 
-      "<h4>" + d.title + "</h4>" +
-      "<p class='artist'>by " + d.artist + "</p>" +
-      "<p class='plays'>🔥 " + d.plays + " plays</p>";
-
-    box.appendChild(beat);
+    box.appendChild(beatEl);
   });
-});
+}
+
+function loadBeats() {
+  if (useFallbackStorage || !db) {
+    const savedBeats = loadLocalData(STORAGE_KEYS.beats, []);
+    if (!savedBeats.length) {
+      const initialBeats = [
+        { title: "Midnight Vibes", artist: "Producer K", plays: 3420 },
+        { title: "Electric Dreams", artist: "Beat Master J", plays: 2890 },
+        { title: "Cosmic Flow", artist: "DJ Luna", plays: 2445 },
+        { title: "Street Anthem", artist: "Rapper X", plays: 1980 }
+      ];
+      saveLocalData(STORAGE_KEYS.beats, initialBeats);
+      renderBeats(initialBeats);
+    } else {
+      renderBeats(savedBeats);
+    }
+    return;
+  }
+
+  db.ref("beats").once("value", (snap) => {
+    const beats = normalizeList(snap.val());
+    if (!beats.length) {
+      const initialBeats = [
+        { title: "Midnight Vibes", artist: "Producer K", plays: 3420 },
+        { title: "Electric Dreams", artist: "Beat Master J", plays: 2890 },
+        { title: "Cosmic Flow", artist: "DJ Luna", plays: 2445 },
+        { title: "Street Anthem", artist: "Rapper X", plays: 1980 }
+      ];
+      initialBeats.forEach(beat => db.ref("beats").push(beat));
+      renderBeats(initialBeats);
+      saveLocalData(STORAGE_KEYS.beats, initialBeats);
+      return;
+    }
+
+    renderBeats(beats);
+    saveLocalData(STORAGE_KEYS.beats, beats);
+  }, (error) => {
+    console.error("Beats database error:", error);
+    useFallbackStorage = true;
+    showStatusNotice("Beats are showing from local storage because the database is unavailable.", true);
+    renderBeats(loadLocalData(STORAGE_KEYS.beats, []));
+  });
+}
+
+loadBeats();
 
 
 // =========================
 // 💬 CHAT SYSTEM
 // =========================
+function renderChat(messages) {
+  let box = document.getElementById("chatBox");
+  if (!box) return;
+
+  box.innerHTML = "";
+
+  messages.forEach(message => {
+    let msgKey = message.id;
+    let timestamp = message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : "";
+
+    let msg = document.createElement("div");
+    msg.className = "chat-message";
+    msg.innerHTML =
+      "<div class='msg-header'>" +
+      "<b>" + (message.name || "Guest") + "</b>" +
+      "<span class='msg-time'>" + timestamp + "</span>" +
+      "<button class='delete-btn' onclick=\"deleteMessage('" + msgKey + "')\">✕</button>" +
+      "</div>" +
+      "<p>" + (message.message || "") + "</p>";
+
+    box.appendChild(msg);
+  });
+
+  box.scrollTop = box.scrollHeight;
+}
+
 function sendMessage() {
   let name = document.getElementById("chatName").value;
   let message = document.getElementById("chatMessage").value;
 
   if (!name || !message) return;
 
-  db.ref("chat").push({
-    name: name,
-    message: message,
-    timestamp: new Date().getTime()
-  });
+  if (useFallbackStorage || !db) {
+    const chatMessages = loadLocalData(STORAGE_KEYS.chat, []);
+    chatMessages.push({
+      id: Date.now().toString(),
+      name: name,
+      message: message,
+      timestamp: new Date().getTime()
+    });
+    saveLocalData(STORAGE_KEYS.chat, chatMessages);
+    renderChat(chatMessages);
+  } else {
+    db.ref("chat").push({
+      name: name,
+      message: message,
+      timestamp: new Date().getTime()
+    });
+  }
 
   document.getElementById("chatMessage").value = "";
 }
 
 function deleteMessage(msgKey) {
+  if (useFallbackStorage || !db) {
+    const chatMessages = loadLocalData(STORAGE_KEYS.chat, []).filter(message => message.id !== msgKey);
+    saveLocalData(STORAGE_KEYS.chat, chatMessages);
+    renderChat(chatMessages);
+    return;
+  }
+
   db.ref("chat/" + msgKey).remove();
 }
 
-
 // LIVE CHAT LOAD
-db.ref("chat").on("value", (snap) => {
-  let box = document.getElementById("chatBox");
-  if (!box) return;
-  
-  box.innerHTML = "";
+function loadChat() {
+  if (useFallbackStorage || !db) {
+    renderChat(loadLocalData(STORAGE_KEYS.chat, []));
+    return;
+  }
 
-  snap.forEach(child => {
-    let d = child.val();
-    let msgKey = child.key;
-    let timestamp = d.timestamp ? new Date(d.timestamp).toLocaleTimeString() : "";
-
-    let msg = document.createElement("div");
-    msg.className = "chat-message";
-    msg.innerHTML = 
-      "<div class='msg-header'>" +
-      "<b>" + d.name + "</b>" +
-      "<span class='msg-time'>" + timestamp + "</span>" +
-      "<button class='delete-btn' onclick=\"deleteMessage('" + msgKey + "')\">✕</button>" +
-      "</div>" +
-      "<p>" + d.message + "</p>";
-
-    box.appendChild(msg);
+  db.ref("chat").on("value", (snap) => {
+    const chatMessages = normalizeList(snap.val());
+    renderChat(chatMessages);
+    saveLocalData(STORAGE_KEYS.chat, chatMessages);
+  }, (error) => {
+    console.error("Chat database error:", error);
+    useFallbackStorage = true;
+    showStatusNotice("Chat is using local storage because the database is unavailable.", true);
+    renderChat(loadLocalData(STORAGE_KEYS.chat, []));
   });
-  
-  // Scroll to latest message
-  box.scrollTop = box.scrollHeight;
-});
+}
+
+loadChat();
