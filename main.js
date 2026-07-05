@@ -327,6 +327,57 @@ function deleteMessage(msgKey) {
   });
 }
 
+let isAdmin = false;
+
+function unlockAdmin() {
+  const adminPassword = prompt("Enter admin password:");
+  if (adminPassword === "boiadmin") {
+    isAdmin = true;
+    document.getElementById("adminStatus").textContent = "Admin access unlocked.";
+    document.getElementById("adminControls").style.display = "block";
+    showStatusNotice("Admin access unlocked.");
+  } else {
+    document.getElementById("adminStatus").textContent = "Wrong password. Admin access remains locked.";
+    showStatusNotice("Wrong password.", true);
+  }
+}
+
+function clearMembers() {
+  if (!isAdmin) return;
+
+  if (useFallbackStorage || !db) {
+    saveLocalData(STORAGE_KEYS.members, []);
+    renderMembers([]);
+  } else {
+    db.ref("members").remove().then(() => {
+      saveLocalData(STORAGE_KEYS.members, []);
+      renderMembers([]);
+      showStatusNotice("Members cleared.");
+    }).catch((error) => {
+      console.error("Could not clear members:", error);
+      showStatusNotice("Could not clear members.", true);
+    });
+  }
+}
+
+function clearChat() {
+  if (!isAdmin) return;
+
+  if (useFallbackStorage || !db) {
+    saveLocalData(STORAGE_KEYS.chat, []);
+    renderChat([]);
+  } else {
+    db.ref("chat").remove().then(() => {
+      saveLocalData(STORAGE_KEYS.chat, []);
+      renderChat([]);
+      showStatusNotice("Chat cleared.");
+    }).catch((error) => {
+      console.error("Could not clear chat:", error);
+      showStatusNotice("Could not clear chat.", true);
+    });
+  }
+}
+
 // LIVE CHAT LOAD
 function loadChat() {
   if (useFallbackStorage || !db) {

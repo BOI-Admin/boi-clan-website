@@ -12,6 +12,29 @@ body {
   display: flex;
   justify-content: center;
 }
+.status-note {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.95);
+  color: white;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+.status-note.visible {
+  display: block;
+}
+
+.status-note.error {
+  background: rgba(239, 68, 68, 0.95);
+}
+
 .navbar-wrapper {
   position: fixed;
   top: 0;
@@ -313,6 +336,12 @@ body {
   background: #dc2626;
 }
 
+.delete-btn.small {
+  padding: 3px 6px;
+  font-size: 11px;
+  margin-top: 8px;
+}
+
 .chat-message p {
   color: #e2e8f0;
   margin: 0;
@@ -450,4 +479,23 @@ select.input {
    but we refine spacing a bit */
 #chatBox .card {
   margin: 0;
+}
+
+.admin-status {
+  color: #cbd5e1;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.admin-controls {
+  width: 100%;
+  max-width: 420px;
+  margin-top: 12px;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }

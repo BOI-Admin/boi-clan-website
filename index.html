@@ -23,6 +23,7 @@
       <a class="nav-btn" data-page="members">Members</a>
       <a class="nav-btn" data-page="beats">Beats</a>
       <a class="nav-btn" data-page="chat">Chat</a>
+      <a class="nav-btn" data-page="admin">Admin</a>
     </div>
   </div>
 </div>
@@ -140,6 +141,22 @@
       <button class="join-btn" onclick="sendMessage()">Send</button>
 
       <div id="chatBox"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN PAGE -->
+  <div id="admin" class="page">
+    <div class="section">
+      <h2>🛡️ Admin</h2>
+      <p id="adminStatus" class="admin-status">Admin access is locked.</p>
+      <button class="join-btn" onclick="unlockAdmin()">Become admin</button>
+
+      <div id="adminControls" class="admin-controls" style="display:none;">
+        <div class="admin-actions">
+          <button class="join-btn secondary" onclick="clearMembers()">Clear members</button>
+          <button class="join-btn secondary" onclick="clearChat()">Clear chat</button>
+        </div>
+      </div>
     </div>
   </div>
 
