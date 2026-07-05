@@ -101,6 +101,85 @@ body {
   color: #94a3b8;
   font-size: 16px;
 }
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.15);
+  color: #d8b4fe;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.hero-link {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.2);
+}
+
+.hero-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.3);
+}
+
+.hero-link.secondary {
+  background: transparent;
+  border: 1px solid #334155;
+  box-shadow: none;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.feature-card {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  padding: 18px;
+  text-align: left;
+}
+
+.feature-card h3 {
+  color: #f8fafc;
+  margin-bottom: 8px;
+}
+
+.feature-card p {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.about-copy {
+  text-align: center;
+  line-height: 1.7;
+  color: #cbd5e1;
+  max-width: 760px;
+}
+
 .section {
   width: 100%;
   margin: 20px 0;
