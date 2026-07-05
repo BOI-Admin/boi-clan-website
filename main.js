@@ -117,9 +117,11 @@ function joinClan() {
 
   if (!name) return;
 
+  const memberRecord = { name: name, role: role, id: Date.now().toString() };
+
   if (useFallbackStorage || !db) {
     const members = loadLocalData(STORAGE_KEYS.members, []);
-    members.push({ name: name, role: role, id: Date.now().toString() });
+    members.push(memberRecord);
     saveLocalData(STORAGE_KEYS.members, members);
     renderMembers(members);
     showStatusNotice("Saved to local members list.");
@@ -127,6 +129,17 @@ function joinClan() {
     db.ref("members").push({
       name: name,
       role: role
+    }).then(() => {
+      loadMembers();
+      showStatusNotice("Joined BOI Clan and synced to the community.");
+    }).catch((error) => {
+      console.error("Members write failed:", error);
+      useFallbackStorage = true;
+      const members = loadLocalData(STORAGE_KEYS.members, []);
+      members.push(memberRecord);
+      saveLocalData(STORAGE_KEYS.members, members);
+      renderMembers(members);
+      showStatusNotice("Saved to local members list because the database could not be reached.", true);
     });
   }
 
@@ -260,14 +273,16 @@ function sendMessage() {
 
   if (!name || !message) return;
 
+  const chatRecord = {
+    id: Date.now().toString(),
+    name: name,
+    message: message,
+    timestamp: new Date().getTime()
+  };
+
   if (useFallbackStorage || !db) {
     const chatMessages = loadLocalData(STORAGE_KEYS.chat, []);
-    chatMessages.push({
-      id: Date.now().toString(),
-      name: name,
-      message: message,
-      timestamp: new Date().getTime()
-    });
+    chatMessages.push(chatRecord);
     saveLocalData(STORAGE_KEYS.chat, chatMessages);
     renderChat(chatMessages);
   } else {
@@ -275,6 +290,17 @@ function sendMessage() {
       name: name,
       message: message,
       timestamp: new Date().getTime()
+    }).then(() => {
+      loadChat();
+      showStatusNotice("Your message was sent to the chat.");
+    }).catch((error) => {
+      console.error("Chat write failed:", error);
+      useFallbackStorage = true;
+      const chatMessages = loadLocalData(STORAGE_KEYS.chat, []);
+      chatMessages.push(chatRecord);
+      saveLocalData(STORAGE_KEYS.chat, chatMessages);
+      renderChat(chatMessages);
+      showStatusNotice("Saved your message locally because the database could not be reached.", true);
     });
   }
 
@@ -289,7 +315,16 @@ function deleteMessage(msgKey) {
     return;
   }
 
-  db.ref("chat/" + msgKey).remove();
+  db.ref("chat/" + msgKey).remove().then(() => {
+    loadChat();
+  }).catch((error) => {
+    console.error("Chat delete failed:", error);
+    useFallbackStorage = true;
+    const chatMessages = loadLocalData(STORAGE_KEYS.chat, []).filter(message => message.id !== msgKey);
+    saveLocalData(STORAGE_KEYS.chat, chatMessages);
+    renderChat(chatMessages);
+    showStatusNotice("Removed the message locally because the database could not be reached.", true);
+  });
 }
 
 // LIVE CHAT LOAD
