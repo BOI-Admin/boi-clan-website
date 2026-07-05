@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BOI Clan</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+</head>
+
+<body>
+
+<div class="navbar-wrapper">
+  <div class="navbar" style="max-width: 1200px; margin: 0 auto;">
+    <h2>🎵 BOI Clan</h2>
+    <div class="nav-links">
+      <a class="nav-btn active" data-page="home">Home</a>
+      <a class="nav-btn" data-page="members">Members</a>
+      <a class="nav-btn" data-page="beats">Beats</a>
+      <a class="nav-btn" data-page="chat">Chat</a>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <!-- HOME PAGE -->
+  <div id="home" class="page active">
+    <div class="hero">
+      <h1>Welcome to BOI Clan 🔥</h1>
+      <p>Music • Beats • Community</p>
+    </div>
+
+    <div class="section">
+      <h2>📊 Clan Stats</h2>
+      <div class="stats-container">
+        <div class="stat-card">
+          <h3 id="memberCount">0</h3>
+          <p>Active Members</p>
+        </div>
+        <div class="stat-card">
+          <h3>1.2K</h3>
+          <p>Beats Produced</p>
+        </div>
+        <div class="stat-card">
+          <h3>450</h3>
+          <p>Collabs</p>
+        </div>
+        <div class="stat-card">
+          <h3>98K</h3>
+          <p>Followers</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>ℹ️ About BOI Clan</h2>
+      <p style="text-align: center; line-height: 1.6;">
+        BOI Clan is a community of talented music producers, beatmakers, rappers, and DJs collaborating to create amazing music. 
+        We believe in the power of collaboration and creative expression through beats and melodies.
+      </p>
+    </div>
+  </div>
+
+  <!-- MEMBERS PAGE -->
+  <div id="members" class="page">
+    <div class="section">
+      <h2>👥 Members</h2>
+      <div id="membersContainer"></div>
+    </div>
+
+    <div class="section">
+      <h2>🚀 Join BOI Clan</h2>
+
+      <input id="username" class="input" placeholder="Username">
+      <br><br>
+
+      <select id="role" class="input">
+        <option>🎹 Producer</option>
+        <option>🎵 Beatmaker</option>
+        <option>🎤 Rapper</option>
+        <option>🎧 DJ</option>
+        <option>🎼 Composer</option>
+      </select>
+
+      <br><br>
+
+      <button class="join-btn" onclick="joinClan()">Join</button>
+
+      <p id="result"></p>
+    </div>
+  </div>
+
+  <!-- BEATS PAGE -->
+  <div id="beats" class="page">
+    <div class="section">
+      <h2>🎵 Top Beats</h2>
+      <div id="beatsContainer"></div>
+    </div>
+  </div>
+
+  <!-- CHAT PAGE -->
+  <div id="chat" class="page">
+    <div class="section">
+      <h2>💬 Chat</h2>
+
+      <input id="chatName" class="input" placeholder="Name">
+      <br><br>
+
+      <input id="chatMessage" class="input" placeholder="Message">
+      <br><br>
+
+      <button class="join-btn" onclick="sendMessage()">Send</button>
+
+      <div id="chatBox"></div>
+    </div>
+  </div>
+
+</div> <!-- app end -->
+
+<script src="main.js"></script>
+
+</body>
+</html>
