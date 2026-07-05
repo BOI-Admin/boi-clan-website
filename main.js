@@ -103,7 +103,11 @@ function renderMembers(members) {
     memberCount++;
     let el = document.createElement("div");
     el.className = "card";
-    el.innerHTML = "<h3>" + (member.name || "Guest") + "</h3><p>" + (member.role || "Member") + "</p>";
+    const memberId = member.id || member.key || "";
+    const deleteButton = isAdmin && memberId
+      ? "<button class='delete-btn small' onclick='removeMember(\"" + memberId + "\")'>Remove</button>"
+      : "";
+    el.innerHTML = "<h3>" + (member.name || "Guest") + "</h3><p>" + (member.role || "Member") + "</p>" + deleteButton;
     box.appendChild(el);
   });
 
@@ -253,11 +257,14 @@ function renderChat(messages) {
 
     let msg = document.createElement("div");
     msg.className = "chat-message";
+    const deleteButton = isAdmin && msgKey
+      ? "<button class='delete-btn small' onclick=\"deleteMessage('" + msgKey + "')\">Remove</button>"
+      : "<button class='delete-btn' onclick=\"deleteMessage('" + msgKey + "')\">✕</button>";
     msg.innerHTML =
       "<div class='msg-header'>" +
       "<b>" + (message.name || "Guest") + "</b>" +
       "<span class='msg-time'>" + timestamp + "</span>" +
-      "<button class='delete-btn' onclick=\"deleteMessage('" + msgKey + "')\">✕</button>" +
+      deleteButton +
       "</div>" +
       "<p>" + (message.message || "") + "</p>";
 
@@ -335,11 +342,35 @@ function unlockAdmin() {
     isAdmin = true;
     document.getElementById("adminStatus").textContent = "Admin access unlocked.";
     document.getElementById("adminControls").style.display = "block";
+    renderMembers(loadLocalData(STORAGE_KEYS.members, []));
+    renderChat(loadLocalData(STORAGE_KEYS.chat, []));
     showStatusNotice("Admin access unlocked.");
   } else {
     document.getElementById("adminStatus").textContent = "Wrong password. Admin access remains locked.";
     showStatusNotice("Wrong password.", true);
   }
+}
+
+function removeMember(memberId) {
+  if (!isAdmin) return;
+
+  if (useFallbackStorage || !db) {
+    const members = loadLocalData(STORAGE_KEYS.members, []).filter(member => (member.id || member.key) !== memberId);
+    saveLocalData(STORAGE_KEYS.members, members);
+    renderMembers(members);
+    showStatusNotice("Member removed.");
+    return;
+  }
+
+  db.ref("members/" + memberId).remove().then(() => {
+    const members = loadLocalData(STORAGE_KEYS.members, []).filter(member => (member.id || member.key) !== memberId);
+    saveLocalData(STORAGE_KEYS.members, members);
+    renderMembers(members);
+    showStatusNotice("Member removed.");
+  }).catch((error) => {
+    console.error("Could not remove member:", error);
+    showStatusNotice("Could not remove member.", true);
+  });
 }
 
 function clearMembers() {
